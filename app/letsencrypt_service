@@ -1,7 +1,8 @@
 #!/bin/bash
 # shellcheck disable=SC2120
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" \
+    && export DIR
 
 source /app/functions.sh
 
@@ -121,11 +122,23 @@ function cleanup_links {
     fi
 }
 
+function wait_for_service_data {
+    local i=0
+    until [[ -f "$DIR/letsencrypt_service_data" ]]; do
+        if [[ $i -gt 10 ]]; then
+            echo "Warning: $DIR/letsencrypt_service_data not found."
+            return 1
+        fi
+        i=$((i + 1))
+        sleep 1
+    done
+}
+
 function update_certs {
 
     check_nginx_proxy_container_run || return
 
-    [[ -f "$DIR"/letsencrypt_service_data ]] || return
+    wait_for_service_data || return
 
     # Load relevant container settings
     unset LETSENCRYPT_CONTAINERS
